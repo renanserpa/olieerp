@@ -3,7 +3,13 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import wixClient from "@/lib/wixClient";
+// import wixClient from "@/lib/wixClient"; // No longer needed
+import { 
+  obterMaterialBasicoPorId, 
+  obterEstoqueDoInsumo, 
+  listarMovimentacoesDoInsumo, 
+  callVeloApi // Use generic call for registrarMovimentacao
+} from "@/lib/api"; // Import API functions
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import {
@@ -28,7 +34,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Edit, PlusCircle, MinusCircle, Settings2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 // Import Dialog components for manual movement
 import {
@@ -118,13 +124,15 @@ export default function MaterialDetailPage() {
     setLoading(true);
     setError(null);
     try {
-      // Fetch material, stock, and movements concurrently
+      // Fetch material, stock, and movements concurrently using api.ts functions
       const [materialData, estoqueData, movimentacoesData] = await Promise.all([
-        wixClient.functions.execute("estoque/materiaisBasicos", "obterMaterialBasicoPorId", id)
+        obterMaterialBasicoPorId(id)
           .catch(err => { console.error("Error fetching material:", err); return null; }),
-        wixClient.functions.execute("estoque/estoqueDeInsumos", "obterEstoqueDoInsumo", id)
+        obterEstoqueDoInsumo(id)
           .catch(err => { console.error("Error fetching stock:", err); return null; }),
-        wixClient.functions.execute("estoque/movimentacoesDeEstoque", "listarMovimentacoesPorInsumo", id)
+        // Assuming the backend function is named "listarMovimentacoesPorInsumo"
+        // If it's "listarMovimentacoesDoInsumo" as in api.ts, use that.
+        listarMovimentacoesDoInsumo(id) 
           .catch(err => { console.error("Error fetching movements:", err); return []; }),
       ]);
 
@@ -172,9 +180,10 @@ export default function MaterialDetailPage() {
         // usuarioId: "MANUAL_USER", // TODO: Get actual user ID if possible
       };
 
-      const result = await wixClient.functions.execute(
-        "estoque/movimentacoesDeEstoque",
-        "registrarMovimentacao",
+      // Use callVeloApi for the generic backend function "registrarMovimentacao"
+      const result = await callVeloApi(
+        "estoque/movimentacoesEstoque", // Corrected module path based on api.ts
+        "registrarMovimentacao", // Assuming this is the correct backend function name
         movementPayload
       );
 
@@ -399,14 +408,14 @@ export default function MaterialDetailPage() {
                     <TableHead>Data</TableHead>
                     <TableHead>Tipo</TableHead>
                     <TableHead className="text-right">Quantidade</TableHead>
-                    <TableHead>Observação / Origem</TableHead>
-                    {/* <TableHead>Usuário</TableHead> */} 
+                    <TableHead>Observação</TableHead>
+                    {/* <TableHead>Usuário</TableHead> */}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {movimentacoes.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center h-24">Nenhuma movimentação registrada.</TableCell>
+                      <TableCell colSpan={4} className="text-center h-24">Nenhuma movimentação encontrada.</TableCell>
                     </TableRow>
                   ) : (
                     movimentacoes.map((mov) => (
@@ -415,7 +424,7 @@ export default function MaterialDetailPage() {
                         <TableCell>
                           <Badge 
                             variant={mov.tipoMovimentacao.includes("ENTRADA") ? "default" : "secondary"}
-                            className={mov.tipoMovimentacao.includes("SAIDA") ? "bg-red-100 text-red-800 hover:bg-red-200" : ""}
+                            className={mov.tipoMovimentacao.includes("SAIDA") ? "bg-yellow-100 text-yellow-800" : ""}
                           >
                             {mov.tipoMovimentacao.replace("_", " ")}
                           </Badge>
@@ -423,12 +432,8 @@ export default function MaterialDetailPage() {
                         <TableCell className={`text-right font-medium ${mov.tipoMovimentacao.includes("ENTRADA") ? "text-green-600" : "text-red-600"}`}>
                           {mov.tipoMovimentacao.includes("ENTRADA") ? "+" : "-"}{mov.quantidade}
                         </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
-                          {mov.observacao}
-                          {mov.pedidoCompraItemId && <span className="block">Pedido Compra: {mov.pedidoCompraItemId.substring(0,8)}...</span>}
-                          {mov.ordemProducaoId && <span className="block">Ordem Produção: {mov.ordemProducaoId.substring(0,8)}...</span>}
-                        </TableCell>
-                        {/* <TableCell>{mov.usuarioId ?? "-"}</TableCell> */} 
+                        <TableCell className="text-sm text-muted-foreground">{mov.observacao ?? "-"}</TableCell>
+                        {/* <TableCell>{mov.usuarioId ?? "-"}</TableCell> */}
                       </TableRow>
                     ))
                   )}

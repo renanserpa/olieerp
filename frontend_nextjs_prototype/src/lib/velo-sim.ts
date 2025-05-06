@@ -1,7 +1,24 @@
 // /src/lib/velo-sim.ts
 // Simula as chamadas para as funções de backend do Velo
 
-import { mockProdutos, mockPedidos, mockItensPedido, mockOrdensProducao } from "../data/mockData";
+// Import the functions that return the mock data, not the constants themselves
+import {
+  getProdutos,
+  getProdutoById,
+  createProduto, // Assuming createProduto exists and manipulates the underlying (unexported) array
+  getPedidos,
+  getPedidoById,
+  createPedido, // Assuming createPedido exists
+  getOrdensProducao,
+  getOrdemProducaoById,
+  // We need a function to get items for a specific order, let's assume one exists or add it
+  // For now, let's assume getPedidoById returns items or we filter manually if needed
+  // Let's also assume functions for adding/creating items exist if needed by the simulation logic
+  Produto, // Import interfaces if needed
+  Pedido,
+  OrdemProducao,
+  ItemPedido
+} from "../data/mockData";
 
 // Simula um atraso de rede
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -11,43 +28,38 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 export const veloListarProdutos = async () => {
   await delay(500); // Simula atraso
   console.log("[Velo Sim] Chamando listarProdutos()");
-  // No Velo real, isso chamaria a função backend
-  // return await wixWindow.backend.listarProdutos();
-  return mockProdutos; 
+  return await getProdutos(); // Use the exported function
 };
 
 export const veloObterProduto = async (id: string) => {
   await delay(300);
   console.log(`[Velo Sim] Chamando obterProduto(${id})`);
-  const produto = mockProdutos.find(p => p._id === id);
+  const produto = await getProdutoById(id); // Use the exported function
   if (!produto) {
     throw new Error(`Produto com ID ${id} não encontrado (simulado).`);
   }
   return produto;
 };
 
-export const veloSalvarProduto = async (dados: any) => {
+export const veloSalvarProduto = async (dados: Omit<Produto, 'id'> & { _id?: string }) => {
   await delay(800);
   console.log("[Velo Sim] Chamando salvarProduto() com dados:", dados);
   if (dados._id) {
-    // Simula atualização
-    const index = mockProdutos.findIndex(p => p._id === dados._id);
+    // Simula atualização - mockData.ts doesn't export update functions, so this is purely simulation
+    console.warn("[Velo Sim] Update simulation might not persist in mockData.ts");
+    const existingProducts = await getProdutos();
+    const index = existingProducts.findIndex(p => p.id === dados._id);
     if (index > -1) {
-      mockProdutos[index] = { ...mockProdutos[index], ...dados, _updatedDate: new Date() };
-      return mockProdutos[index];
+      // This update won't actually modify the source array in mockData.ts unless we add update functions there
+      const updatedProduct = { ...existingProducts[index], ...dados, _updatedDate: new Date() };
+      return updatedProduct;
     }
     throw new Error(`Produto com ID ${dados._id} não encontrado para atualizar (simulado).`);
   } else {
-    // Simula inserção
-    const novoProduto = { 
-      ...dados, 
-      _id: `prod-${Date.now()}`,
-      _createdDate: new Date(),
-      _updatedDate: new Date(),
-      ativo: true 
-    };
-    mockProdutos.push(novoProduto);
-    return novoProduto;
+    // Simula inserção using the exported create function
+    // Ensure the input 'dados' matches the expected type for createProduto
+    const { _id, ...rest } = dados; // Remove potential _id from input
+    return await createProduto(rest as Omit<Produto, 'id'>); // Use the exported function
   }
 };
 
@@ -56,98 +68,90 @@ export const veloSalvarProduto = async (dados: any) => {
 export const veloListarPedidosRecentes = async (limit = 50) => {
   await delay(600);
   console.log(`[Velo Sim] Chamando listarPedidosRecentes(${limit})`);
-  return mockPedidos.slice(0, limit);
+  const pedidos = await getPedidos(); // Use the exported function
+  return pedidos.slice(0, limit);
 };
 
-// Função FALTANTE no backend real (simulada aqui)
 export const veloObterPedido = async (id: string) => {
   await delay(400);
   console.log(`[Velo Sim] Chamando obterPedido(${id}) - SIMULADA`);
-  const pedido = mockPedidos.find(p => p._id === id);
+  const pedido = await getPedidoById(id); // Use the exported function
   if (!pedido) {
     throw new Error(`Pedido com ID ${id} não encontrado (simulado).`);
   }
-  // Simula busca de itens relacionados
-  const itens = await veloListarItensDoPedido(id);
-  return { ...pedido, itens }; 
+  // getPedidoById in mockData.ts already includes items based on its structure
+  return pedido;
 };
 
-// Função FALTANTE no backend real (simulada aqui)
-export const veloCriarPedido = async (dados: any) => {
+export const veloCriarPedido = async (dados: Omit<Pedido, 'id' | 'itens' | 'valorTotal' | 'status' | 'dataPedido' | 'numero'>) => {
   await delay(900);
   console.log("[Velo Sim] Chamando criarPedido() com dados: - SIMULADA", dados);
-  const novoPedido = {
-    ...dados,
-    _id: `ped-${Date.now()}`,
-    numero: `P${new Date().getFullYear()}-${String(mockPedidos.length + 1).padStart(3, '0')}`,
-    data: new Date().toISOString().split('T')[0],
-    status: "Aguardando Pagamento", // Status inicial simulado
-    valorTotal: 0, // Será atualizado ao adicionar itens
-    itens: [],
-    _createdDate: new Date(),
-    _updatedDate: new Date(),
-  };
-  mockPedidos.push(novoPedido);
-  return novoPedido;
+  // Use the exported function from mockData.ts
+  return await createPedido(dados);
 };
 
 // --- Itens do Pedido ---
-
-export const veloListarItensDoPedido = async (pedidoId: string) => {
+// mockData.ts doesn't export a function specifically for listing items of *one* order.
+// We'll get the order and return its items.
+export const veloListarItensDoPedido = async (pedidoId: string): Promise<ItemPedido[]> => {
   await delay(200);
   console.log(`[Velo Sim] Chamando listarItensDoPedido(${pedidoId})`);
-  return mockItensPedido.filter(item => item.pedidoId === pedidoId);
+  const pedido = await getPedidoById(pedidoId);
+  if (!pedido) {
+    throw new Error(`Pedido com ID ${pedidoId} não encontrado para listar itens (simulado).`);
+  }
+  return pedido.itens || [];
 };
 
-// Função FALTANTE no backend real (simulada aqui)
-export const veloAdicionarItemPedido = async (pedidoId: string, dadosItem: any) => {
+// Function to add item - mockData.ts doesn't export this, simulation only
+export const veloAdicionarItemPedido = async (pedidoId: string, dadosItem: { produtoId: string; quantidade: number }): Promise<ItemPedido> => {
    await delay(700);
    console.log(`[Velo Sim] Chamando adicionarItemPedido(${pedidoId}) com dados: - SIMULADA`, dadosItem);
-   const pedido = mockPedidos.find(p => p._id === pedidoId);
+   console.warn("[Velo Sim] Add item simulation might not persist in mockData.ts");
+
+   const pedido = await getPedidoById(pedidoId);
    if (!pedido) {
      throw new Error(`Pedido com ID ${pedidoId} não encontrado para adicionar item (simulado).`);
    }
-   const produto = mockProdutos.find(p => p._id === dadosItem.produtoId);
+   const produto = await getProdutoById(dadosItem.produtoId);
    if (!produto) {
      throw new Error(`Produto com ID ${dadosItem.produtoId} não encontrado (simulado).`);
    }
 
-   const novoItem = {
-     _id: `item-${Date.now()}`,
+   const novoItem: ItemPedido = {
+     id: `item-${Date.now()}`,
      pedidoId: pedidoId,
      produtoId: dadosItem.produtoId,
-     nomeProduto: produto.nome, // Adicionado para exibição
+     produtoNome: produto.nome,
      quantidade: dadosItem.quantidade,
-     valorUnitario: produto.precoBase, // Usando preço base do produto
-     valorTotal: produto.precoBase * dadosItem.quantidade,
-     _createdDate: new Date(),
-     _updatedDate: new Date(),
+     precoUnitario: produto.preco, // Using price from product
+     precoTotal: produto.preco * dadosItem.quantidade,
+     // _createdDate and _updatedDate are not in the interface, omitting
    };
-   mockItensPedido.push(novoItem);
 
-   // Atualiza valor total do pedido (simulado)
-   pedido.valorTotal = (pedido.valorTotal || 0) + novoItem.valorTotal;
-   pedido._updatedDate = new Date();
+   // This update won't actually modify the source array in mockData.ts
+   // pedido.itens.push(novoItem);
+   // pedido.valorTotal = (pedido.valorTotal || 0) + novoItem.precoTotal;
 
    return novoItem;
 };
 
 // --- Ordens de Produção ---
 
-export const veloListarOrdensProducao = async (statusId?: string) => {
+export const veloListarOrdensProducao = async (status?: string) => {
   await delay(550);
-  console.log(`[Velo Sim] Chamando listarOrdensProducao(${statusId || ''})`);
-  if (statusId) {
-    return mockOrdensProducao.filter(op => op.status === statusId);
+  console.log(`[Velo Sim] Chamando listarOrdensProducao(${status || ''})`);
+  const ordens = await getOrdensProducao(); // Use the exported function
+  if (status) {
+    return ordens.filter(op => op.status === status);
   }
-  return mockOrdensProducao;
+  return ordens;
 };
 
-// Função FALTANTE no backend real (simulada aqui)
 export const veloObterOrdemProducao = async (id: string) => {
   await delay(350);
   console.log(`[Velo Sim] Chamando obterOrdemProducao(${id}) - SIMULADA`);
-  const ordem = mockOrdensProducao.find(op => op._id === id);
+  const ordem = await getOrdemProducaoById(id); // Use the exported function
   if (!ordem) {
     throw new Error(`Ordem de Produção com ID ${id} não encontrada (simulada).`);
   }
@@ -155,3 +159,4 @@ export const veloObterOrdemProducao = async (id: string) => {
 };
 
 // Adicione outras funções simuladas conforme necessário...
+

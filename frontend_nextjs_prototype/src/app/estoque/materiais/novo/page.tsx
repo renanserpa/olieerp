@@ -27,8 +27,9 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { useToast } from "@/components/ui/use-toast";
-import wixClient from "@/lib/wixClient";
+import { useToast } from "@/hooks/use-toast";
+// import wixClient from "@/lib/wixClient"; // No longer needed for API calls here
+import { criarMaterialBasico } from "@/lib/api"; // Import the specific API function
 import { ArrowLeft } from "lucide-react";
 
 // TODO: Fetch grupos de insumos dynamically if needed for grupoId selection
@@ -71,12 +72,8 @@ export default function NovoMaterialPage() {
     setError(null);
 
     try {
-      // Call the backend function using wixClient.functions.execute
-      const result = await wixClient.functions.execute(
-        "estoque/materiaisBasicos",
-        "criarMaterialBasico",
-        values // Pass validated form values
-      );
+      // Call the backend function using the new api.ts wrapper
+      const result = await criarMaterialBasico(values);
 
       console.log("Material Básico criado com sucesso:", result);
       toast({

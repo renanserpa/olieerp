@@ -3,13 +3,14 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import wixClient from "@/lib/wixClient";
+// import wixClient from "@/lib/wixClient"; // No longer needed
+import { obterOrdemProducaoPorId, atualizarStatusOrdemProducao, callVeloApi } from "@/lib/api"; // Import API functions
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, CheckCircle, PlayCircle, XCircle } from "lucide-react"; // Icons for status actions
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -27,7 +28,7 @@ type OrdemProducao = {
   _id: string;
   produtoId: string;
   quantidade: number;
-  statusId: string;
+  statusId: string; // Assuming statusId is the key used in backend
   dataCriacao: string | Date;
   dataPrevista?: string | Date | null;
   prioridade?: number;
@@ -64,18 +65,19 @@ export default function OrdemProducaoDetailPage() {
     setLoading(true);
     setError(null);
     try {
-      // Fetch order details
-      const ordemData = await wixClient.functions.execute("producao/ordensProducao", "obterOrdemProducaoPorId", id);
+      // Fetch order details using api.ts function
+      const ordemData = await obterOrdemProducaoPorId(id);
 
       if (!ordemData) {
         throw new Error("Ordem de produção não encontrada.");
       }
 
-      // TODO: Fetch related data like produtoNome and statusDescricao
-      // Reusing the placeholder logic from before the reset
+      // TODO: Fetch related data like produtoNome
+      // For now, use placeholder logic and map statusId to description
       const enrichedOrdemData = {
         ...ordemData,
         produtoNome: ordemData.produtoId, // Placeholder - fetch actual name if possible
+        // Assuming ordemData.statusId holds the key like 'AGUARDANDO_INICIO'
         statusDescricao: STATUS_PRODUCAO_MOCK[ordemData.statusId as keyof typeof STATUS_PRODUCAO_MOCK] || ordemData.statusId,
       };
 
@@ -102,13 +104,9 @@ export default function OrdemProducaoDetailPage() {
 
     setIsUpdatingStatus(true);
     try {
-      // 1. Update the status using the backend function
-      await wixClient.functions.execute(
-        "producao/ordensProducao", 
-        "atualizarStatusOrdem", 
-        ordem._id, 
-        novoStatusId
-      );
+      // 1. Update the status using the api.ts function
+      // Note: The api.ts function expects { _id: id, novoStatus: novoStatusId }
+      await atualizarStatusOrdemProducao(ordem._id, novoStatusId);
 
       // 2. *** TRIGGER AUTOMATIC STOCK DEDUCTION (BACKEND LOGIC NEEDED) ***
       // Check if the new status requires stock deduction (e.g., CONCLUIDO or EM_ANDAMENTO)
@@ -116,12 +114,11 @@ export default function OrdemProducaoDetailPage() {
         console.log(`Status updated to ${novoStatusId}. Attempting to trigger stock deduction...`);
         try {
           // **ASSUMPTION:** A backend function `baixarEstoqueOrdemProducao` exists.
-          // This function should handle fetching required insumos (produtoXInsumo),
-          // calculating quantities, registering movements, and updating stock levels.
-          const baixaResult = await wixClient.functions.execute(
+          // Use callVeloApi for this potentially generic/complex function
+          const baixaResult = await callVeloApi(
             "producao/ordensProducao", // Or "estoque/integracoes" or wherever it resides
             "baixarEstoqueOrdemProducao", 
-            ordem._id
+            { ordemProducaoId: ordem._id } // Pass ID in the body
           );
           console.log("Resultado da baixa de estoque:", baixaResult);
           toast({ 
@@ -260,7 +257,8 @@ export default function OrdemProducaoDetailPage() {
               <div className="flex-grow">
                 <Label htmlFor="statusSelect">Novo Status</Label>
                 <Select 
-                  value={ordem.statusId} // Controlled component
+                  // Use ordem.statusId which should hold the key like 'AGUARDANDO_INICIO'
+                  value={ordem.statusId} 
                   onValueChange={(value) => handleUpdateStatus(value)} 
                   disabled={isUpdatingStatus}
                 >

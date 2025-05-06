@@ -2,7 +2,12 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import wixClient from "@/lib/wixClient";
+// import wixClient from "@/lib/wixClient"; // No longer needed for API calls here
+import { 
+  obterResumoDashboard, 
+  listarProdutosRecentes, 
+  listarMateriaisEstoqueBaixo 
+} from "@/lib/api"; // Import API functions
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertTriangle, Box, CheckCircle, Clock, ListOrdered, Package, ShoppingCart, TrendingUp } from "lucide-react";
@@ -83,37 +88,31 @@ export default function DashboardPage() {
     setError(null);
 
     try {
-      // Fetch all dashboard data concurrently
-      // **ASSUMPTION:** Backend functions like `obterResumoDashboard`, 
-      // `listarProdutosRecentes`, `listarMateriaisEstoqueBaixo` exist.
-      // Assuming a module `dashboard` exists in backend for summary functions.
+      // Fetch all dashboard data concurrently using api.ts functions
       const [summaryData, produtosData, materiaisData] = await Promise.all([
-        wixClient.functions.execute("dashboard/resumos", "obterResumoDashboard") // Example function name
+        obterResumoDashboard()
           .catch(err => { console.error("Error fetching summary:", err); return null; }),
-        wixClient.functions.execute("produtos/produtos", "listarProdutos", { limit: 5, sort: { field: "_createdDate", order: "desc" } }) // Fetch 5 most recent
+        listarProdutosRecentes(5) // Fetch 5 most recent
           .catch(err => { console.error("Error fetching recent products:", err); return []; }),
-        wixClient.functions.execute("estoque/estoqueDeInsumos", "listarMateriaisEstoqueBaixo") // Example function name
+        listarMateriaisEstoqueBaixo()
           .catch(err => { console.error("Error fetching low stock materials:", err); return []; }),
       ]);
 
-      // Simulate data if backend functions don't exist yet
+      // Simulate data if backend functions don't exist yet or fail
       const finalSummaryData = summaryData || {
         pedidosAbertosCount: 0, // Placeholder
         ordensProducaoAtivasCount: 0, // Placeholder
-        materiaisEstoqueBaixoCount: 0, // Placeholder
-        movimentacoesSemanaCount: 0, // Placeholder
+        materiaisEstoqueBaixoCount: (materiaisData || []).length, // Use length from fetched low stock items
+        movimentacoesSemanaCount: 0, // Placeholder - Requires another backend function
       };
 
       setSummary(finalSummaryData);
       setProdutosRecentes(produtosData || []);
       setMateriaisBaixo(materiaisData || []);
 
-      // Mark backend function identification as done (assuming they exist or will be created)
-      // This step is conceptual here as we proceed with frontend implementation.
-
     } catch (err: any) {
       console.error("Erro ao carregar dados do dashboard:", err);
-      setError("Falha ao carregar informações do dashboard. Verifique se as funções de resumo existem no backend Velo.");
+      setError("Falha ao carregar informações do dashboard. Verifique a conexão e as funções do backend Velo.");
     } finally {
       setLoadingSummary(false);
       setLoadingProdutos(false);
@@ -151,9 +150,10 @@ export default function DashboardPage() {
         />
         <SummaryCard
           title="Materiais com Estoque Baixo"
-          value={summary?.materiaisEstoqueBaixoCount ?? 0}
+          // Use summary count if available, otherwise fallback to array length
+          value={summary?.materiaisEstoqueBaixoCount ?? materiaisBaixo.length}
           icon={AlertTriangle}
-          isLoading={loadingSummary}
+          isLoading={loadingSummary || loadingMateriais} // Loading if either summary or materials are loading
           description="Abaixo da quantidade mínima definida"
           link="/estoque/materiais?filtro=baixo_estoque" // Example link with filter
         />

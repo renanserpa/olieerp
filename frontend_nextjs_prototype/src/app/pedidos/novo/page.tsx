@@ -9,6 +9,13 @@ import { Label } from "@/components/ui/label";
 // import { createPedido } from "@/data/mockData"; // Remove mock data import
 import { veloCriarPedido } from "@/lib/velo-sim"; // Import simulated Velo function
 
+// Define type based on what veloCriarPedido returns (which uses mockData with 'id')
+type PedidoCriado = {
+    id: string;
+    // Include other properties returned by veloCriarPedido if needed
+    clienteNome?: string;
+};
+
 export default function NovoPedidoPage() {
   const router = useRouter();
   const [clienteNome, setClienteNome] = useState("");
@@ -35,11 +42,12 @@ export default function NovoPedidoPage() {
 
     try {
       // Create the basic order (without items for now)
-      // const novoPedido = await createPedido({ clienteNome }); // Use simulated Velo function
-      const novoPedido = await veloCriarPedido(dadosPedido);
+      // Use the simulated Velo function which returns PedidoCriado type (with 'id')
+      const novoPedido: PedidoCriado = await veloCriarPedido(dadosPedido);
 
       // Redirect to the order detail page to add items
-      router.push(`/pedidos/${novoPedido._id}`); // Use _id from backend response
+      // Use 'id' from the response object
+      router.push(`/pedidos/${novoPedido.id}`); 
     } catch (err: any) {
       console.error("Erro ao criar pedido (simulado):", err);
       setError(err.message || "Ocorreu um erro ao tentar criar o pedido.");
@@ -74,3 +82,4 @@ export default function NovoPedidoPage() {
     </div>
   );
 }
+

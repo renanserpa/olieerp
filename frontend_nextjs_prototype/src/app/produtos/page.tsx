@@ -39,7 +39,7 @@ export default function ProdutosListPage() {
       try {
         // Construct the relative path for the HTTP function
         const functionPath = 
-'/_functions/produtos';
+'/_functions/produtos'; // Corrected path - removed extra newline
         // Make the fetch call using wixClient
         const response = await wixClient.fetch(functionPath, {
           method: 'GET',
@@ -51,18 +51,23 @@ export default function ProdutosListPage() {
           // Try to get error details from the response body
           let errorBody = 'Unknown error';
           try {
-            const errorJson = await response.json();
-            errorBody = errorJson.error || JSON.stringify(errorJson);
+            const errorJson: unknown = await response.json(); // Type as unknown
+            // Safely check for error property
+            if (typeof errorJson === 'object' && errorJson !== null && 'error' in errorJson && typeof (errorJson as any).error === 'string') {
+              errorBody = (errorJson as { error: string }).error;
+            } else {
+              errorBody = JSON.stringify(errorJson);
+            }
           } catch (parseError) {
             // Ignore if response body is not JSON or empty
           }
           throw new Error(`HTTP error ${response.status}: ${errorBody}`);
         }
 
-        const data = await response.json();
+        const data: unknown = await response.json();
         // Assuming the backend returns an array of products directly in the body
-        // If it returns { body: [...] }, adjust accordingly: const products = data.body;
-        setProdutos(data); // Adjust if needed based on actual response structure
+        // Type assertion to ensure data matches the Produto[] type before setting state
+        setProdutos(data as Produto[]); 
 
       } catch (err: any) {
         console.error("Erro ao buscar produtos (Wix SDK):", err);
@@ -119,3 +124,4 @@ export default function ProdutosListPage() {
     </div>
   );
 }
+

@@ -43,8 +43,13 @@ export default function ProdutoDetailPage() {
         if (!response.ok) {
           let errorBody = 'Unknown error';
           try {
-            const errorJson = await response.json();
-            errorBody = errorJson.error || JSON.stringify(errorJson);
+            const errorJson: unknown = await response.json(); // Type as unknown
+            // Safely check for error property
+            if (typeof errorJson === 'object' && errorJson !== null && 'error' in errorJson && typeof (errorJson as any).error === 'string') {
+              errorBody = (errorJson as { error: string }).error;
+            } else {
+              errorBody = JSON.stringify(errorJson);
+            }
           } catch (parseError) {
             // Ignore if response body is not JSON or empty
           }
@@ -55,10 +60,10 @@ export default function ProdutoDetailPage() {
              throw new Error(`HTTP error ${response.status}: ${errorBody}`);
           }
         } else {
-          const data = await response.json();
+          const data: unknown = await response.json();
           // Assuming the backend returns the product object directly in the body
-          // If it returns { body: {...} }, adjust accordingly: const product = data.body;
-          setProduto(data); // Adjust if needed based on actual response structure
+          // Type assertion to ensure data matches the Produto type before setting state
+          setProduto(data as Produto); 
         }
 
       } catch (err: any) {
@@ -73,7 +78,7 @@ export default function ProdutoDetailPage() {
       };
       fetchData();
     }
-  }, [id]);
+  }, [id, error]); // Added error to dependency array to avoid potential stale closure issues
 
   if (loading) {
     return <p>Carregando detalhes do produto...</p>;
@@ -110,3 +115,4 @@ export default function ProdutoDetailPage() {
     </div>
   );
 }
+

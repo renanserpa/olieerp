@@ -3,7 +3,7 @@ import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import NovoMaterialPage from "../page"; // Adjust the import path as needed
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast"; // Corrected import path
 import wixClient from "@/lib/wixClient";
 
 // Mock dependencies
@@ -16,7 +16,7 @@ jest.mock("next/navigation", () => ({
 }));
 
 // Mock the toast
-jest.mock("@/components/ui/use-toast", () => ({
+jest.mock("@/hooks/use-toast", () => ({ // Corrected mock path
   useToast: () => ({
     toast: jest.fn(),
   }),

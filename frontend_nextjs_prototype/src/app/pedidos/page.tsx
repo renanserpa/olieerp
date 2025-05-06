@@ -16,10 +16,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-// Define a basic type for Pedido based on velo-sim return for now
+// Define a basic type for Pedido based on velo-sim return (which uses mockData with 'id')
 // TODO: Refine this type based on actual backend function return
 type Pedido = {
-  _id: string;
+  id: string; // Changed from _id to match mockData/velo-sim
   numero?: string; // Assuming numero might exist
   clienteNome?: string; // Assuming clienteNome might exist
   data?: string; // Assuming data might exist
@@ -38,8 +38,9 @@ export default function PedidosListPage() {
       setLoading(true);
       setError(null);
       try {
-        // const data = await getPedidos(); // Use simulated Velo function
+        // Use simulated Velo function which returns Pedido[] with 'id'
         const data = await veloListarPedidosRecentes();
+        // Type should now match
         setPedidos(data);
       } catch (err: any) {
         console.error("Erro ao buscar pedidos (simulado):", err);
@@ -78,7 +79,7 @@ export default function PedidosListPage() {
             </TableHeader>
             <TableBody>
               {pedidos.map((pedido) => (
-                <TableRow key={pedido._id}> {/* Use _id */} 
+                <TableRow key={pedido.id}> {/* Use id */} 
                   <TableCell className="font-medium">{pedido.numero ?? "-"}</TableCell>
                   <TableCell>{pedido.clienteNome ?? "-"}</TableCell>
                   <TableCell>{pedido.data ? new Date(pedido.data).toLocaleDateString("pt-BR") : "-"}</TableCell> {/* Format date */} 
@@ -86,7 +87,7 @@ export default function PedidosListPage() {
                   <TableCell className="text-right">{pedido.valorTotal?.toFixed(2) ?? "0.00"}</TableCell>
                   <TableCell className="text-right">
                     <Button variant="outline" size="sm" asChild>
-                       <Link href={`/pedidos/${pedido._id}`}>Detalhes</Link> {/* Use _id */} 
+                       <Link href={`/pedidos/${pedido.id}`}>Detalhes</Link> {/* Use id */} 
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -98,3 +99,4 @@ export default function PedidosListPage() {
     </div>
   );
 }
+

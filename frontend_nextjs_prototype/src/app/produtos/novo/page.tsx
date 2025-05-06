@@ -63,8 +63,13 @@ export default function NovoProdutoPage() {
       if (!response.ok) {
         let errorBody = 'Unknown error';
         try {
-          const errorJson = await response.json();
-          errorBody = errorJson.error || JSON.stringify(errorJson);
+          const errorJson: unknown = await response.json(); // Type as unknown
+          // Safely check for error property
+          if (typeof errorJson === 'object' && errorJson !== null && 'error' in errorJson && typeof (errorJson as any).error === 'string') {
+            errorBody = (errorJson as { error: string }).error;
+          } else {
+            errorBody = JSON.stringify(errorJson);
+          }
         } catch (parseError) {
           // Ignore if response body is not JSON or empty
         }
@@ -139,3 +144,4 @@ export default function NovoProdutoPage() {
     </div>
   );
 }
+

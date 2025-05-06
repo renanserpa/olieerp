@@ -3,8 +3,9 @@ import React from "react";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import PedidosPage from "../page"; // Adjust the import path as needed
-import wixClient from "@/lib/wixClient";
-import { useToast } from "@/components/ui/use-toast";
+// import wixClient from "@/lib/wixClient"; // No longer mocking wixClient directly
+import * as api from "@/lib/api"; // Import the api module to mock its functions
+import { useToast } from "@/hooks/use-toast"; // Corrected import path
 
 // Mock dependencies
 jest.mock("next/navigation", () => ({
@@ -14,16 +15,17 @@ jest.mock("next/navigation", () => ({
   }),
 }));
 
-jest.mock("@/components/ui/use-toast", () => ({
+jest.mock("@/hooks/use-toast", () => ({ // Corrected mock path
   useToast: () => ({
     toast: jest.fn(),
   }),
 }));
 
-jest.mock("@/lib/wixClient", () => ({
-  functions: {
-    execute: jest.fn(),
-  },
+// Mock the specific API functions used by the component
+jest.mock("@/lib/api", () => ({
+  __esModule: true, // Needed for ES Module mocking
+  ...jest.requireActual("@/lib/api"), // Keep other exports if any
+  listarPedidos: jest.fn(), // Mock the specific function
 }));
 
 // Mock Shadcn Table components (basic structure)
@@ -45,7 +47,8 @@ jest.mock("next/link", () => {
 });
 
 describe("PedidosPage", () => {
-  const mockWixExecute = wixClient.functions.execute as jest.Mock;
+  // Get the mocked function
+  const mockListarPedidos = api.listarPedidos as jest.Mock;
   const mockRouterPush = jest.fn();
   const mockToast = jest.fn();
 
@@ -56,7 +59,7 @@ describe("PedidosPage", () => {
   });
 
   it("renders loading state initially", () => {
-    mockWixExecute.mockReturnValue(new Promise(() => {})); // Keep promise pending
+    mockListarPedidos.mockReturnValue(new Promise(() => {})); // Keep promise pending
     render(<PedidosPage />);
     // Check for skeleton loaders (assuming they exist in the component)
     // Using a simple text check as a placeholder for actual skeleton components
@@ -64,11 +67,11 @@ describe("PedidosPage", () => {
   });
 
   it("renders the list of orders when data is fetched successfully", async () => {
-    const mockPedidos = [
+    const mockPedidosData = [
       { _id: "ped1", numeroPedido: "P001", clienteNome: "Cliente A", status: "Confirmado", dataCriacao: new Date().toISOString(), valorTotal: 100 },
       { _id: "ped2", numeroPedido: "P002", clienteNome: "Cliente B", status: "Pendente", dataCriacao: new Date().toISOString(), valorTotal: 250 },
     ];
-    mockWixExecute.mockResolvedValue(mockPedidos);
+    mockListarPedidos.mockResolvedValue(mockPedidosData);
 
     render(<PedidosPage />);
 
@@ -87,11 +90,12 @@ describe("PedidosPage", () => {
     expect(screen.getByText("Pendente")).toBeInTheDocument();
 
     // Check if the API was called correctly
-    expect(mockWixExecute).toHaveBeenCalledWith("pedidos/pedidos", "listarPedidos", undefined); // Assuming no args for list all
+    expect(mockListarPedidos).toHaveBeenCalledTimes(1);
+    expect(mockListarPedidos).toHaveBeenCalledWith(); // Assuming no args for list all
   });
 
   it("renders an empty state message when no orders are found", async () => {
-    mockWixExecute.mockResolvedValue([]); // Return empty array
+    mockListarPedidos.mockResolvedValue([]); // Return empty array
 
     render(<PedidosPage />);
 
@@ -106,7 +110,7 @@ describe("PedidosPage", () => {
 
   it("renders an error message if data fetching fails", async () => {
     const errorMessage = "Falha ao buscar pedidos";
-    mockWixExecute.mockRejectedValue(new Error(errorMessage));
+    mockListarPedidos.mockRejectedValue(new Error(errorMessage));
 
     render(<PedidosPage />);
 
@@ -120,7 +124,7 @@ describe("PedidosPage", () => {
   });
 
   it("navigates to the new order page when 'Novo Pedido' button is clicked", async () => {
-    mockWixExecute.mockResolvedValue([]); // Mock successful empty fetch
+    mockListarPedidos.mockResolvedValue([]); // Mock successful empty fetch
     render(<PedidosPage />);
 
     await waitFor(() => {

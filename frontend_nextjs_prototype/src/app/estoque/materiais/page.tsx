@@ -4,7 +4,8 @@
 import Link from "next/link";
 import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import wixClient from "@/lib/wixClient";
+// import wixClient from "@/lib/wixClient"; // No longer needed for API calls here
+import { listarMateriaisBasicos, obterEstoqueDoInsumo } from "@/lib/api"; // Import API functions
 import {
   Table,
   TableBody,
@@ -50,8 +51,8 @@ export default function MateriaisListPage() {
     setLoading(true);
     setError(null);
     try {
-      // Fetch materials list
-      const materiaisData: MaterialBasico[] = await wixClient.functions.execute("estoque/materiaisBasicos", "listarMateriaisBasicos");
+      // Fetch materials list using the new API function
+      const materiaisData: MaterialBasico[] = await listarMateriaisBasicos();
 
       if (!materiaisData || materiaisData.length === 0) {
         setMateriais([]);
@@ -63,10 +64,10 @@ export default function MateriaisListPage() {
       let materiaisComSaldo: MaterialBasico[] = materiaisData.map((mat) => ({ ...mat, saldoAtual: null }));
       setMateriais(materiaisComSaldo); // Set initial state with placeholders
 
-      // Fetch stock levels for each material
+      // Fetch stock levels for each material using the new API function
       // TODO: Optimize this - ideally, create a backend function to fetch materials WITH stock levels
       const stockPromises = materiaisData.map(mat =>
-        wixClient.functions.execute("estoque/estoqueDeInsumos", "obterEstoqueDoInsumo", mat._id)
+        obterEstoqueDoInsumo(mat._id)
           .catch(err => {
             console.warn(`Could not fetch stock for material ${mat._id}:`, err); // Log warning but don't fail all
             return null; // Return null if fetching stock fails for one item
@@ -77,7 +78,8 @@ export default function MateriaisListPage() {
       // Create a map for quick stock lookup
       const stockMap = new Map<string, number>();
       stockResults.forEach(stock => {
-        if (stock) {
+        // The API returns the stock object directly, not wrapped
+        if (stock && stock.insumoId) { // Check if stock and insumoId exist
           stockMap.set(stock.insumoId, stock.quantidadeAtual);
         }
       });

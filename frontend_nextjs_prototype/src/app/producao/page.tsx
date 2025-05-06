@@ -16,17 +16,17 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-// Define a basic type for OrdemProducao based on velo-sim return for now
+// Define a basic type for OrdemProducao based on velo-sim return (which uses mockData with 'id')
 // TODO: Refine this type based on actual backend function return
 type OrdemProducao = {
-  _id: string;
+  id: string; // Changed from _id to match mockData/velo-sim
   numeroOP?: string;
   pedidoNumero?: string; // Assuming this comes from related Pedido
   produtoNome?: string; // Assuming this comes from related Produto
   quantidade?: number;
   status?: string;
   dataCriacao?: string;
-  dataPrevista?: string;
+  dataPrevista?: string | null; // Changed to allow null to match mockData
   // Add other relevant fields from your actual data structure
 };
 
@@ -40,8 +40,9 @@ export default function ProducaoListPage() {
       setLoading(true);
       setError(null);
       try {
-        // const data = await getOrdensProducao(); // Use simulated Velo function
+        // Use simulated Velo function which returns OrdemProducao[] with 'id'
         const data = await veloListarOrdensProducao();
+        // Type should now match
         setOrdens(data);
       } catch (err: any) {
         console.error("Erro ao buscar ordens de produção (simulado):", err);
@@ -80,7 +81,7 @@ export default function ProducaoListPage() {
             </TableHeader>
             <TableBody>
               {ordens.map((ordem) => (
-                <TableRow key={ordem._id}> {/* Use _id */} 
+                <TableRow key={ordem.id}> {/* Use id */} 
                   <TableCell className="font-medium">{ordem.numeroOP ?? "-"}</TableCell>
                   <TableCell>{ordem.pedidoNumero ?? "-"}</TableCell> {/* Assuming pedidoNumero exists */} 
                   <TableCell>{ordem.produtoNome ?? "-"}</TableCell> {/* Assuming produtoNome exists */} 
@@ -90,7 +91,7 @@ export default function ProducaoListPage() {
                   <TableCell>{ordem.dataPrevista ? new Date(ordem.dataPrevista).toLocaleDateString("pt-BR") : "-"}</TableCell> {/* Format date */} 
                   <TableCell className="text-right">
                     <Button variant="outline" size="sm" asChild>
-                       <Link href={`/producao/${ordem._id}`}>Detalhes</Link> {/* Use _id */} 
+                       <Link href={`/producao/${ordem.id}`}>Detalhes</Link> {/* Use id */} 
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -102,3 +103,4 @@ export default function ProducaoListPage() {
     </div>
   );
 }
+

@@ -40,15 +40,16 @@ import {
 } from "@/components/ui/select";
 
 // Define basic types based on velo-sim return for now
+// Aligning with mockData.ts which uses 'id'
 // TODO: Refine these types based on actual backend function returns
 type Produto = {
-  _id: string;
+  id: string; // Changed from _id to match mockData
   nome: string;
   precoBase?: number;
 };
 
 type ItemPedido = {
-  _id: string;
+  id: string; // Changed from _id to match mockData
   pedidoId: string;
   produtoId: string;
   nomeProduto?: string; // Added in sim for display
@@ -58,7 +59,7 @@ type ItemPedido = {
 };
 
 type Pedido = {
-  _id: string;
+  id: string; // Changed from _id to match mockData
   numero?: string;
   clienteNome?: string;
   data?: string;
@@ -95,11 +96,13 @@ export default function PedidoDetailPage() {
       ]);
 
       if (pedidoData) {
+        // Type should now match due to local type definition change
         setPedido(pedidoData);
       } else {
         // veloObterPedido throws error if not found
         setError("Pedido não encontrado.");
       }
+      // Assuming veloListarProdutos returns Produto[] with 'id'
       setProdutosDisponiveis(produtosData);
     } catch (err: any) {
       console.error("Erro ao buscar dados do pedido (simulado):", err);
@@ -116,7 +119,8 @@ export default function PedidoDetailPage() {
   }, [id]);
 
   const handleAddItem = async () => {
-      const produtoSelecionado = produtosDisponiveis.find(p => p._id === selectedProdutoId);
+      // Use 'id' for comparison
+      const produtoSelecionado = produtosDisponiveis.find(p => p.id === selectedProdutoId);
       if (!produtoSelecionado || quantidadeItem <= 0) {
           setAddItemError("Selecione um produto e informe uma quantidade válida.");
           return;
@@ -126,7 +130,7 @@ export default function PedidoDetailPage() {
       setAddItemError(null);
 
       const dadosItem = {
-          produtoId: produtoSelecionado._id,
+          produtoId: produtoSelecionado.id, // Use 'id'
           quantidade: quantidadeItem,
           // Backend should calculate price based on product
       };
@@ -165,14 +169,14 @@ export default function PedidoDetailPage() {
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">Detalhes do Pedido: {pedido.numero ?? pedido._id}</h1>
+        <h1 className="text-2xl font-bold">Detalhes do Pedido: {pedido.numero ?? pedido.id}</h1>
         {/* Add Edit button later if needed */}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="border rounded-lg p-4">
             <h3 className="font-semibold mb-2">Informações Gerais</h3>
-            <p><strong>ID:</strong> {pedido._id}</p>
+            <p><strong>ID:</strong> {pedido.id}</p>
             <p><strong>Número:</strong> {pedido.numero ?? "-"}</p>
             <p><strong>Cliente:</strong> {pedido.clienteNome ?? "-"}</p>
             <p><strong>Data:</strong> {pedido.data ? new Date(pedido.data).toLocaleDateString("pt-BR") : "-"}</p>
@@ -211,7 +215,7 @@ export default function PedidoDetailPage() {
                         </SelectTrigger>
                         <SelectContent>
                             {produtosDisponiveis.map(p => (
-                                <SelectItem key={p._id} value={p._id}>
+                                <SelectItem key={p.id} value={p.id}> {/* Use 'id' */}
                                     {p.nome} (R$ {(p.precoBase ?? 0).toFixed(2)})
                                 </SelectItem>
                             ))}
@@ -260,7 +264,7 @@ export default function PedidoDetailPage() {
             <TableBody>
               {pedido.itens && pedido.itens.length > 0 ? (
                 pedido.itens.map((item) => (
-                  <TableRow key={item._id}> {/* Use _id */} 
+                  <TableRow key={item.id}> {/* Use 'id' */}
                     <TableCell>{item.nomeProduto ?? item.produtoId}</TableCell> {/* Display name or ID */} 
                     <TableCell className="text-right">{item.quantidade}</TableCell>
                     <TableCell className="text-right">{(item.valorUnitario ?? 0).toFixed(2)}</TableCell>
@@ -289,3 +293,4 @@ export default function PedidoDetailPage() {
     </div>
   );
 }
+
