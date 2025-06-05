@@ -4,9 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build",
+    "build": "next build --no-lint",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.0.1",
@@ -45,6 +47,7 @@
     "sonner": "^2.0.3",
     "tailwind-merge": "^3.3.0",
     "tailwindcss-animate": "^1.0.7",
+    "xlsx": "^0.18.5",
     "zod": "^3.25.30"
   },
   "devDependencies": {
@@ -53,12 +56,16 @@
     "@types/node": "^20",
     "@types/papaparse": "^5.3.16",
     "@types/react": "^19",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.3.0",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.1.8",
+    "jsdom": "^26.1.0",
     "postcss": "^8.5.4",
     "supabase": "^2.23.4",
     "tailwindcss": "^3.4.17",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^3.2.1"
   }
 }
