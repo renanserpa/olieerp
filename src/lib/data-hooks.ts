@@ -4,11 +4,13 @@
 
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
-import { 
-  Client, Supplier, StockItem, Component, Supply, 
+import {
+  Client, Supplier, StockItem, Component, Supply,
   Product, Order, ProductionOrder, PurchaseRequest,
   DeliveryRoute, StockMovement
 } from '@/types/schema';
+
+export { useSupabaseData } from './utils/data-hooks';
 
 // Função genérica para tratar erros do Supabase
 export const handleSupabaseError = (error: any) => {
