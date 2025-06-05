@@ -1,6 +1,26 @@
-.next/
-*.tsbuildinfo
-.env.local
+# dependencies
 node_modules/
-dist/
+
+# next.js build output
+.next/
+
+# production build
+/dist/
+
+# TypeScript
+*.tsbuildinfo
+
+# logs
 *.log
+
+# environment variables
+.env*
+!.env.example
+
+# IDE settings
+.vscode/
+.idea/
+
+# misc
+.DS_Store
+
